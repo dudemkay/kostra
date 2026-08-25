@@ -1,14 +1,12 @@
 import { setAuthCookie, generateJWT } from '@/lib/auth/jwt';
 import { prisma } from '@/lib/prisma';
+import { hashPassword } from '@/lib/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * Temporary testing access. This is intentionally disabled unless TEST_MODE
- * is explicitly enabled and TEST_AUTH_SECRET matches.
- *
- * It does not bypass the normal application authorization rules; it only
- * creates the same JWT cookie that the normal login flow creates, using an
- * existing database user.
+ * Temporary testing access.
+ * Disabled unless TEST_MODE=true and TEST_AUTH_SECRET matches.
+ * When enabled, it creates/reuses one clearly named test admin account.
  */
 export const dynamic = 'force-dynamic';
 
@@ -18,22 +16,31 @@ export async function GET(request: NextRequest) {
   }
 
   const configuredSecret = process.env.TEST_AUTH_SECRET;
-  const configuredEmail = process.env.TEST_AUTH_EMAIL;
   const suppliedSecret = new URL(request.url).searchParams.get('key');
 
-  if (!configuredSecret || !configuredEmail || suppliedSecret !== configuredSecret) {
+  if (!configuredSecret || !suppliedSecret || suppliedSecret !== configuredSecret) {
     return NextResponse.json({ error: 'Invalid test access configuration' }, { status: 403 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: configuredEmail },
-  });
+  const email = process.env.TEST_AUTH_EMAIL || 'test-admin@kostra.local';
+  let user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user || user.deletedAt) {
-    return NextResponse.json(
-      { error: 'TEST_AUTH_EMAIL does not match an active database user' },
-      { status: 404 }
-    );
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: 'Kostra Test Admin',
+        password: await hashPassword(crypto.randomUUID()),
+        role: 'ADMIN',
+        isOnboarded: true,
+        credits: 1000,
+        plan: 'PRO',
+      },
+    });
+  }
+
+  if (user.deletedAt) {
+    return NextResponse.json({ error: 'Test user is deleted' }, { status: 403 });
   }
 
   const token = await generateJWT({
@@ -52,6 +59,5 @@ export async function GET(request: NextRequest) {
   });
 
   await setAuthCookie(token);
-
   return NextResponse.redirect(new URL('/app', request.url));
 }
