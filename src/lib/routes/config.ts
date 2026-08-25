@@ -26,6 +26,7 @@ export const ALL_ROUTES: RouteConfig[] = [
   // Public webhooks and authentication
   { path: '/api/webhooks/stripe', isPublic: true },
   { path: '/api/auth/logout', isPublic: true },
+  { path: '/api/auth/test-login', isPublic: true },
   { path: '/api/auth/google/verify', isPublic: true },
   { path: '/api/auth/login', isPublic: true },
   { path: '/api/auth/signup', isPublic: true },
