@@ -15,7 +15,7 @@ export const ALL_ROUTES: RouteConfig[] = [
   { path: '/blog', isPublic: true },
   { path: '/blog/[slug]', isPublic: true },
 
-  // Static files and assets (should be handled by Next.js but included for safety)
+  // Static files and assets
   { path: '/favicon.ico', isPublic: true },
   { path: '/favicon/[...path]', isPublic: true },
   { path: '/_next/[...path]', isPublic: true },
@@ -23,7 +23,7 @@ export const ALL_ROUTES: RouteConfig[] = [
   { path: '/logos/[...path]', isPublic: true },
   { path: '/screenshots/[...path]', isPublic: true },
 
-  // Public webhooks and auth
+  // Public webhooks and authentication
   { path: '/api/webhooks/stripe', isPublic: true },
   { path: '/api/auth/logout', isPublic: true },
   { path: '/api/auth', isPublic: true },
@@ -35,10 +35,9 @@ export const ALL_ROUTES: RouteConfig[] = [
   { path: '/api/auth/reset-password', isPublic: true },
   { path: '/api/auth/resend-otp', isPublic: true },
 
-  // Protected app pages - require authentication
+  // Protected app pages
   { path: '/onboarding', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
   { path: '/app', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
-
   { path: '/app/files', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
   { path: '/app/packages', isPublic: false, accessTo: { GET: [ADMIN] } },
   { path: '/app/blogs', isPublic: false, accessTo: { GET: [ADMIN] } },
@@ -52,258 +51,60 @@ export const ALL_ROUTES: RouteConfig[] = [
   { path: '/app/settings/billing', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
   { path: '/app/settings/users', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
 
-  // Admin pages - require admin role
+  // Admin page and compatibility alias
+  { path: '/admin', isPublic: false, accessTo: { GET: [ADMIN] } },
   { path: '/app/admin', isPublic: false, accessTo: { GET: [ADMIN] } },
   { path: '/app/admin/users', isPublic: false, accessTo: { GET: [ADMIN] } },
 
   // API routes - packages
-  {
-    path: '/api/packages',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      POST: [ADMIN],
-    },
-  },
-  {
-    path: '/api/packages/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      PATCH: [ADMIN],
-      DELETE: [ADMIN],
-    },
-  },
+  { path: '/api/packages', isPublic: false, accessTo: { GET: [ADMIN], POST: [ADMIN] } },
+  { path: '/api/packages/[id]', isPublic: false, accessTo: { GET: [ADMIN], PATCH: [ADMIN], DELETE: [ADMIN] } },
 
   // API routes - blogs
-  {
-    path: '/api/blogs',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      POST: [ADMIN],
-    },
-  },
-  {
-    path: '/api/blogs/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      PUT: [ADMIN],
-      DELETE: [ADMIN],
-    },
-  },
+  { path: '/api/blogs', isPublic: false, accessTo: { GET: [ADMIN], POST: [ADMIN] } },
+  { path: '/api/blogs/[id]', isPublic: false, accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] } },
 
   // API routes - categories
-  {
-    path: '/api/categories',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      POST: [ADMIN],
-    },
-  },
-  {
-    path: '/api/categories/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      PUT: [ADMIN],
-      DELETE: [ADMIN],
-    },
-  },
+  { path: '/api/categories', isPublic: false, accessTo: { GET: [ADMIN], POST: [ADMIN] } },
+  { path: '/api/categories/[id]', isPublic: false, accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] } },
 
   // API routes - files
-  {
-    path: '/api/files',
-    isPublic: false,
-    accessTo: {
-      GET: [USER, ADMIN],
-      POST: [USER, ADMIN],
-    },
-  },
-  {
-    path: '/api/files/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [USER, ADMIN],
-      PUT: [USER, ADMIN],
-      DELETE: [USER, ADMIN],
-    },
-  },
-  {
-    path: '/api/files/[id]/download',
-    isPublic: false,
-    accessTo: {
-      POST: [USER, ADMIN],
-    },
-  },
+  { path: '/api/files', isPublic: false, accessTo: { GET: [USER, ADMIN], POST: [USER, ADMIN] } },
+  { path: '/api/files/[id]', isPublic: false, accessTo: { GET: [USER, ADMIN], PUT: [USER, ADMIN], DELETE: [USER, ADMIN] } },
+  { path: '/api/files/[id]/download', isPublic: false, accessTo: { POST: [USER, ADMIN] } },
+  { path: '/api/file-upload/presigned-url', isPublic: false, accessTo: { POST: [USER, ADMIN] } },
 
-  // API routes - file upload
-  {
-    path: '/api/file-upload/presigned-url',
-    isPublic: false,
-    accessTo: {
-      POST: [USER, ADMIN],
-    },
-  },
+  // Authenticated API
+  { path: '/api/auth', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
+  { path: '/api/users/data', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
+  { path: '/api/users/credits', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
+  { path: '/api/users/credits/history', isPublic: false, accessTo: { GET: [USER, ADMIN] } },
 
-  // API routes - auth
-  {
-    path: '/api/auth',
-    isPublic: false,
-    accessTo: {
-      GET: [USER, ADMIN],
-    },
-  },
+  // Billing
+  { path: '/api/billing/checkout', isPublic: false, accessTo: { POST: [USER, ADMIN] } },
+  { path: '/api/billing/portal', isPublic: false, accessTo: { POST: [USER, ADMIN] } },
 
-  // API routes - users
-  {
-    path: '/api/users/data',
-    isPublic: false,
-    accessTo: {
-      GET: [USER, ADMIN],
-    },
-  },
-  {
-    path: '/api/users/credits',
-    isPublic: false,
-    accessTo: {
-      GET: [USER, ADMIN],
-    },
-  },
-  {
-    path: '/api/users/credits/history',
-    isPublic: false,
-    accessTo: {
-      GET: [USER, ADMIN],
-    },
-  },
+  // Admin API
+  { path: '/api/admin/users', isPublic: false, accessTo: { GET: [ADMIN], POST: [ADMIN] } },
+  { path: '/api/admin/users/[id]', isPublic: false, accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] } },
+  { path: '/api/admin/users/[id]/restore', isPublic: false, accessTo: { POST: [ADMIN] } },
 
-  // API routes - billing
-  {
-    path: '/api/billing/checkout',
-    isPublic: false,
-    accessTo: {
-      POST: [USER, ADMIN],
-    },
-  },
-  {
-    path: '/api/billing/portal',
-    isPublic: false,
-    accessTo: {
-      POST: [USER, ADMIN],
-    },
-  },
+  // Email templates
+  { path: '/api/email-templates', isPublic: false, accessTo: { GET: [ADMIN] } },
+  { path: '/api/email-templates/[id]', isPublic: false, accessTo: { GET: [ADMIN] } },
 
-  // API routes - admin
-  {
-    path: '/api/admin/users',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      POST: [ADMIN],
-    },
-  },
-  {
-    path: '/api/admin/users/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      PUT: [ADMIN],
-      DELETE: [ADMIN],
-    },
-  },
-  {
-    path: '/api/admin/users/[id]/restore',
-    isPublic: false,
-    accessTo: {
-      POST: [ADMIN],
-    },
-  },
+  // Email campaigns
+  { path: '/api/campaigns', isPublic: false, accessTo: { GET: [ADMIN], POST: [ADMIN] } },
+  { path: '/api/campaigns/[id]', isPublic: false, accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] } },
+  { path: '/api/campaigns/[id]/recipients', isPublic: false, accessTo: { GET: [ADMIN] } },
+  { path: '/api/campaign-recipients', isPublic: false, accessTo: { GET: [ADMIN], POST: [ADMIN] } },
+  { path: '/api/campaign-recipients/[id]', isPublic: false, accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] } },
+  { path: '/api/campaigns/process-scheduled', isPublic: true, accessTo: { POST: [] } },
 
-  // API routes - email templates
-  {
-    path: '/api/email-templates',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-    },
-  },
-  {
-    path: '/api/email-templates/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-    },
-  },
+  // Legacy route
+  { path: '/api/onboard', isPublic: false, accessTo: { POST: [ADMIN, USER] } },
 
-  // API routes - Email Campaigns
-  {
-    path: '/api/campaigns',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      POST: [ADMIN],
-    },
-  },
-  {
-    path: '/api/campaigns/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      PUT: [ADMIN],
-      DELETE: [ADMIN],
-    },
-  },
-  {
-    path: '/api/campaigns/[id]/recipients',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-    },
-  },
-
-  // API routes - campaign recipients
-  {
-    path: '/api/campaign-recipients',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      POST: [ADMIN],
-    },
-  },
-  {
-    path: '/api/campaign-recipients/[id]',
-    isPublic: false,
-    accessTo: {
-      GET: [ADMIN],
-      PUT: [ADMIN],
-      DELETE: [ADMIN],
-    },
-  },
-
-  // API routes - campaign email sending
-  {
-    path: '/api/campaigns/process-scheduled',
-    isPublic: true, // Public for cron job access
-    accessTo: {
-      POST: [], // No role required (cron job endpoint)
-    },
-  },
-
-  // Legacy route for backward compatibility
-  {
-    path: '/api/onboard',
-    isPublic: false,
-    accessTo: { POST: [ADMIN, USER] },
-  },
-
-  // API routes - contact management
+  // Contact
   { path: '/api/contact', isPublic: false, accessTo: { POST: [], GET: [ADMIN] } },
-  {
-    path: '/api/contact/[id]',
-    isPublic: false,
-    accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] },
-  },
+  { path: '/api/contact/[id]', isPublic: false, accessTo: { GET: [ADMIN], PUT: [ADMIN], DELETE: [ADMIN] } },
 ] as const;
