@@ -4,38 +4,24 @@ import {
   checkAccess,
   findMatchingRoute,
   handleCorsPreflightRequest,
-  isPublicRoute,
   isRouteConfigured,
-  requiresRoleAccess,
 } from '@/lib/routes';
 import { NextRequest, NextResponse } from 'next/server';
 import { UserRole } from './lib/prisma/generated/enums';
 import { forbiddenResponse } from './lib/utils/response/response';
 
-// Middleware is now called Proxy
-// https://nextjs.org/docs/app/getting-started/proxy#proxy
+// Next.js 16 calls this file's request handler "Proxy".
+// Keep authentication and authorization decisions here, while leaving
+// public routes completely untouched.
 const proxy = async (request: NextRequest) => {
   const preflightResponse = handleCorsPreflightRequest(request);
   if (preflightResponse) return preflightResponse;
 
   const { pathname: path } = new URL(request.url);
   const { method } = request;
+  const matchedRoute = findMatchingRoute(path);
 
-  let authUser: JWTPayload | null = null;
-  let userRole: UserRole | null = null;
-
-  try {
-    authUser = await getAuthUser(request);
-    if (authUser) {
-      userRole = authUser.role.toUpperCase() as UserRole;
-    }
-  } catch (error) {
-    console.error('Auth error:', error);
-  }
-
-  // Check if route is configured
-  const isConfigured = isRouteConfigured(path);
-  if (!isConfigured) {
+  if (!matchedRoute || !isRouteConfigured(path)) {
     const response = NextResponse.json(
       { error: 'Route not found', message: 'This route is not configured' },
       { status: 404 }
@@ -43,81 +29,62 @@ const proxy = async (request: NextRequest) => {
     return applyCorsHeaders(request, response);
   }
 
-  const isPublic = isPublicRoute(request);
-  const matchedRoute = findMatchingRoute(path);
-  const needsRoleAccess = requiresRoleAccess(matchedRoute, method);
+  // Public routes do not need authentication or role checks.
+  if (matchedRoute.isPublic) {
+    return applyCorsHeaders(request, NextResponse.next());
+  }
 
-  // Only protect non-public routes, but check if method allows public access
-  if (!isPublic && !authUser) {
-    // Check if this method allows public access (empty array in accessTo)
-    const methodAccess =
-      matchedRoute?.accessTo?.[
-        method as Exclude<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', null>
-      ];
-    const isPublicMethod = methodAccess && methodAccess.length === 0;
+  let authUser: JWTPayload | null = null;
+  try {
+    authUser = await getAuthUser(request);
+  } catch (error) {
+    console.error('Auth error:', error);
+  }
 
-    // If method is not public, return appropriate response
-    if (!isPublicMethod) {
-      // For API routes, return JSON error instead of redirect
-      if (path.startsWith('/api/')) {
-        const response = forbiddenResponse();
-        response.cookies.delete(JWT_KEY || 'auth-token');
-        return applyCorsHeaders(request, response);
-      }
-      // For page routes, redirect to login
-      const response = NextResponse.redirect(new URL('/', request.url));
+  const methodAccess = matchedRoute.accessTo?.[
+    method as Exclude<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', null>
+  ];
+
+  // An empty access list explicitly means that this HTTP method is public.
+  const isPublicMethod = Array.isArray(methodAccess) && methodAccess.length === 0;
+
+  if (isPublicMethod) {
+    return applyCorsHeaders(request, NextResponse.next());
+  }
+
+  // Protected route: an authenticated user is required.
+  if (!authUser) {
+    if (path.startsWith('/api/')) {
+      const response = forbiddenResponse();
       response.cookies.delete(JWT_KEY || 'auth-token');
-      return response;
+      return applyCorsHeaders(request, response);
+    }
+
+    // Keep the existing landing-page auth UX. The application does not need
+    // separate /login or /signup pages.
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete(JWT_KEY || 'auth-token');
+    return response;
+  }
+
+  // If this route has role restrictions for the current method, enforce them.
+  if (methodAccess) {
+    const userRole = authUser.role.toUpperCase() as UserRole;
+    const hasAccess = checkAccess(path, method, userRole);
+
+    if (!hasAccess) {
+      if (path.startsWith('/api/')) {
+        return applyCorsHeaders(request, forbiddenResponse());
+      }
+
+      // Authenticated but unauthorized: do not pretend the route does not
+      // exist. Send the user back to the application dashboard.
+      return NextResponse.redirect(new URL('/app', request.url));
     }
   }
 
-  // For non-public routes, check role access
-  if (!isPublic && needsRoleAccess) {
-    // Check if this method allows public access (empty array in accessTo)
-    const methodAccess =
-      matchedRoute?.accessTo?.[
-        method as Exclude<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', null>
-      ];
-    const isPublicMethod = methodAccess && methodAccess.length === 0;
-
-    // If method is not public, ensure the user is authenticated
-    if (!isPublicMethod && !authUser) {
-      // For API routes, return JSON error instead of redirect
-      if (path.startsWith('/api/')) {
-        const response = forbiddenResponse();
-        response.cookies.delete(JWT_KEY || 'auth-token');
-        return applyCorsHeaders(request, response);
-      }
-      // For page routes, redirect to login
-      const response = NextResponse.redirect(new URL('/', request.url));
-      response.cookies.delete(JWT_KEY || 'auth-token');
-      return response;
-    }
-
-    // If method requires authentication, check role access
-    if (!isPublicMethod && authUser) {
-      const effectiveRole = userRole || 'USER';
-      const hasAccess = checkAccess(path, method, effectiveRole);
-
-      if (!hasAccess) {
-        if (path.startsWith('/api/')) {
-          const response = forbiddenResponse();
-          return applyCorsHeaders(request, response);
-        }
-
-        const response = NextResponse.redirect(new URL('/', request.url));
-        return response;
-      }
-    }
-  }
-
-  // Create response with user ID in headers if user is authenticated
   const response = NextResponse.next();
-
-  if (authUser?.userId) {
-    response.headers.set('x-user-id', authUser.userId.toString());
-  }
-
+  response.headers.set('x-user-id', authUser.userId.toString());
   return applyCorsHeaders(request, response);
 };
 
@@ -125,7 +92,6 @@ export default proxy;
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     '/((?!monitoring|_next/static|_next/image|favicon.ico|favicon/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)',
   ],
 };
