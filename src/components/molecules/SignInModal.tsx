@@ -21,8 +21,8 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const [authMode, setAuthMode] = useState<AuthMode>('signin');
   const [signupData, setSignupData] = useState<{ name: string; email: string } | null>(null);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState<string>('');
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  // Resets state and closes
   const handleOnClose = useCallback(() => {
     setAuthMode('signin');
     setSignupData(null);
@@ -30,13 +30,9 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
     onClose();
   }, [onClose]);
 
-
-  // Handle escape key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleOnClose();
-      }
+      if (e.key === 'Escape') handleOnClose();
     };
 
     if (isOpen) {
@@ -55,14 +51,10 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
   return (
     <div
       onClick={e => {
-        if (e.target === e.currentTarget) {
-          handleOnClose();
-        }
+        if (e.target === e.currentTarget) handleOnClose();
       }}
       onKeyDown={e => {
-        if (e.key === 'Escape') {
-          handleOnClose();
-        }
+        if (e.key === 'Escape') handleOnClose();
       }}
       className="bg-black/50 fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-md"
       aria-label="Close modal backdrop"
@@ -75,37 +67,22 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
         aria-labelledby="modal-title"
         className="relative mx-4 w-full max-w-sm overflow-hidden rounded-2xl border border-neutral-900 bg-[#080a0c] shadow-2xl transition-all duration-300"
       >
-        {/* Close button */}
         <Button
           onClick={handleOnClose}
           variant="ghost"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#080a0c] text-gray-50 transition-colors hover:bg-neutral-900 hover:text-gray-100 p-0"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[#080a0c] p-0 text-gray-50 transition-colors hover:bg-neutral-900 hover:text-gray-100"
           aria-label="Close modal"
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </Button>
 
-        {/* Content */}
         <div className="p-8">
           <div className="mb-8 text-center">
             <div className="mb-4 flex justify-center">
-              <Image
-                src="/logos/dark-logo.png"
-                alt="Kostra Logo"
-                width={52}
-                height={52}
-                className="drop-shadow-xs"
-              />
+              <Image src="/logos/dark-logo.png" alt="Kostra Logo" width={52} height={52} className="drop-shadow-xs" />
             </div>
             <h1 id="modal-title" className="mb-2 text-2xl font-bold text-gray-100">
               {authMode === 'signin' && 'Welcome to Kostra'}
@@ -123,24 +100,26 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
             </p>
           </div>
 
-          {/* Render appropriate form based on auth mode */}
           {authMode === 'signin' && (
             <>
               <EmailSignInForm
-                onSuccess={() => handleOnClose()}
+                onSuccess={handleOnClose}
                 onSwitchToSignUp={() => setAuthMode('signup')}
                 onForgotPassword={() => setAuthMode('forgot-password')}
               />
 
-              <div className="mt-3 flex items-center justify-center gap-2">
-                <div className="h-px flex-1 bg-gray-500" />
-                <span className="text-sm text-gray-400">or</span>
-                <div className="h-px flex-1 bg-gray-500" />
-              </div>
-
-              <div className="mt-3">
-                <GoogleSignInButton className="w-full" />
-              </div>
+              {googleClientId && (
+                <>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <div className="h-px flex-1 bg-gray-500" />
+                    <span className="text-sm text-gray-400">or</span>
+                    <div className="h-px flex-1 bg-gray-500" />
+                  </div>
+                  <div className="mt-3">
+                    <GoogleSignInButton className="w-full" />
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -158,10 +137,8 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
             <OTPVerificationForm
               email={signupData.email}
               name={signupData.name}
-              onSuccess={() => handleOnClose()}
-              onResendOTP={() => {
-                // Resend OTP is handled by the OTPVerificationForm component
-              }}
+              onSuccess={handleOnClose}
+              onResendOTP={() => {}}
             />
           )}
 
@@ -178,35 +155,21 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
           {authMode === 'reset-password' && forgotPasswordEmail && (
             <ResetPasswordForm
               email={forgotPasswordEmail}
-              onSuccess={() => handleOnClose()}
+              onSuccess={handleOnClose}
               onBackToSignIn={() => setAuthMode('signin')}
             />
           )}
 
           <div className="mt-6 flex items-center justify-center gap-2 border-t border-gray-500 pt-6 text-center">
             <div className="flex items-center justify-center gap-1">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-gray-400"
-              >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <circle cx="12" cy="16" r="1" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
               <span className="text-sm text-gray-400">
                 Secured by{' '}
-                <Image
-                  src="/logos/dark-logo.png"
-                  alt="Kostra Logo"
-                  width={50}
-                  height={50}
-                  className="inline-block h-4 w-auto object-contain"
-                />
+                <Image src="/logos/dark-logo.png" alt="Kostra Logo" width={50} height={50} className="inline-block h-4 w-auto object-contain" />
               </span>
             </div>
           </div>
